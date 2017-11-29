@@ -1,0 +1,17 @@
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Assembly-CSharp.dll.mdb
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Assembly-CSharp.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/obj/Debug/Assembly-CSharp.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/obj/Debug/Assembly-CSharp.dll.mdb
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/UnityEngine.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/UnityEditor.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/UnityEngine.Networking.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/UnityEngine.UI.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Mono.Cecil.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Unity.SerializationLogic.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Unity.DataContract.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/ICSharpCode.NRefactory.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Unity.UNetWeaver.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Unity.UNetWeaver.dll.mdb
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Unity.CecilTools.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Mono.Cecil.Pdb.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Mono.Cecil.Mdb.dll
