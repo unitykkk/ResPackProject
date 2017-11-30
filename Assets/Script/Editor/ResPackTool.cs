@@ -11,19 +11,40 @@ using UnityEditor;
 /// </summary>
 class ResPackTool:Editor
 {
-	public static string MFilterFileExtention = ".meta";							//要过滤掉的文件后缀名
-	private static String desPath = @"/Users/huzhen/Desktop/ResPack/total.bin";  	//打包后的文件
-	private static string srcPath = @"/Users/huzhen/Desktop/ResPack/Src";			//要打包的文件夹
-	private static string txtPath = @"/Users/huzhen/Desktop/ResPack/total.txt";		//打包完成后存有各资源信息的txt文件
+	public static string MFilterFileExtention = ".meta";			//要过滤掉的文件后缀名
+	private static String desPath = null;  							//打包后的文件
+	private static string srcPath = null;							//要打包的文件夹
+	private static string txtPath = null;							//打包完成后存有各资源信息的txt文件
 
 
-	[MenuItem("Tools/资源合并打包")]
+	[MenuItem("工具/资源打包")]
 	static void Main()
     {
+		if (InitPath ())	return;
+		
 		CombineFile (srcPath, desPath, txtPath);
 
-		Debug.Log("Resource pack finished!");
+		EditorUtility.DisplayDialog("提示", "资源打包完成", "确定");
     }
+
+	/// <summary>
+	/// 初始化打包路径
+	/// </summary>
+	private static bool InitPath()
+	{
+		srcPath = EditorUtility.OpenFolderPanel ("选择要打包的资源文件夹", "", "");
+		if (string.IsNullOrEmpty (srcPath)) 
+		{
+			Debug.Log ("已取消打包");
+			return true;
+		}
+
+		DirectoryInfo dirInfo = new DirectoryInfo (srcPath);
+		desPath = dirInfo.Parent.FullName + @"/total.bin";
+		txtPath = dirInfo.Parent.FullName + @"/total.txt";
+
+		return false;
+	}
 
 
 	#region 合并文件
