@@ -16,6 +16,8 @@
 /Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/UnityEditor.iOS.Extensions.dll
 /Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/UnityEditor.iOS.Extensions.Xcode.dll
 /Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/UnityEditor.iOS.Extensions.Common.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Assembly-CSharp.dll
+/Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Assembly-CSharp.dll.mdb
 /Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Mono.Cecil.dll
 /Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Unity.SerializationLogic.dll
 /Users/huzhen/Project/Unity5_3/ResPackProject/Temp/bin/Debug/Unity.DataContract.dll
