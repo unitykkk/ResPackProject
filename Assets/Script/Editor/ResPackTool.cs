@@ -58,7 +58,7 @@ namespace PackTool
 
 
 		#region 数据
-		private static List<ResPackInfo> resInfoList = null;
+		private static List<PackedFileInfo> resInfoList = null;
 		#endregion
 		#region 窗口显示
 
@@ -233,7 +233,7 @@ namespace PackTool
 				if (filePaths.Length < 1)
 					return;
 
-				resInfoList = new List<ResPackInfo> ();
+				resInfoList = new List<PackedFileInfo> ();
 
 				GetFilesInitInfo (filePaths);
 				WriteAllDatas (desFilePath, filePaths, ref frontRegionsSize);
@@ -270,13 +270,13 @@ namespace PackTool
 
 
 			//2.文件信息集合区域
-			totalWriter.Write (MyConverter.Int2Bytes(fileInfosRegionSize));			//2.1文件信息集合所占字节大小(int)
+			totalWriter.Write (MyConverter.Int2Bytes(fileInfosRegionSize));				//2.1文件信息集合所占字节大小(int)
 			totalWriter.Write(MyConverter.Int2Bytes(resInfoList.Count));				//2.2文件信息集合里的文件信息个数（int)
 			byte [] infoDatas = null;
 			for (int n = 0; n < resInfoList.Count; n++) 								//2.3各文件信息组合
 			{
-				byte[] strDatas = MyConverter.String2Bytes (resInfoList [n].resName);
-				ushort strLength = (ushort)strDatas.Length;			//字节长度
+				byte[] strDatas = MyConverter.String2Bytes (resInfoList [n].fileName);
+				ushort strLength = (ushort)strDatas.Length;								//字节长度
 
 				AddToEnd (ref infoDatas, MyConverter.Ushort2Bytes (strLength));
 				AddToEnd (ref infoDatas, strDatas);
@@ -300,9 +300,18 @@ namespace PackTool
 				//以小文件所对应的文件名称和打开模式来初始化FileStream文件流，起读取分割作用
 				tempStream = new FileStream (filePaths [i], FileMode.Open);
 				tempReader = new BinaryReader (tempStream);
+
 				int tempFileLength = (int)tempStream.Length;
-				//读取分割文件中的数据，并生成合并后文件
-				totalWriter.Write(tempReader.ReadBytes(tempFileLength));
+				if (0 == tempFileLength) 
+				{
+					Debug.LogError ("错误:" + filePaths[i] + "这个文件内容为空");
+				} 
+				else 
+				{
+					//读取分割文件中的数据，并生成合并后文件
+					totalWriter.Write (tempReader.ReadBytes (tempFileLength));
+				}
+
 				//关闭BinaryReader文件阅读器
 				tempReader.Close();
 				//关闭FileStream文件流
@@ -340,14 +349,14 @@ namespace PackTool
 			}
 		}
 
-		private static void Test(string txtPath, List<ResPackInfo> resInfoList, int beforeLength)
+		private static void Test(string txtPath, List<PackedFileInfo> resInfoList, int beforeLength)
 		{
 			StringBuilder fileInfoes = new StringBuilder ();
 			fileInfoes.Append (beforeLength.ToString ()).Append("\r\n");
 
 			for(int i = 0; i < resInfoList.Count; i++)
 			{
-				string fileName = resInfoList [i].resName + "\t";
+				string fileName = resInfoList [i].fileName + "\t";
 				string beforeSpace = "beforeSpace:" + resInfoList [i].beforeSpace.ToString() + "\t";
 				string startPos = "startPos:" + resInfoList [i].beginPos.ToString () + "\t";
 				string fileSize = "fileSize:" + resInfoList [i].size.ToString () + "\t";
@@ -372,7 +381,8 @@ namespace PackTool
 		{
 			FileStream tempStream = null;
 			BinaryReader tempReader = null;
-			int rootFolderPathLength = PackFromFolderPath.Length + 1;
+			DirectoryInfo packFolderParent = (new DirectoryInfo (PackFromFolderPath)).Parent;
+			int rootFolderPathLength = packFolderParent.FullName.Length + 1;
 
 			//1.获取文件初始信息
 			for (int i = 0; i < filePaths.Length; i++) 
@@ -384,13 +394,13 @@ namespace PackTool
 					tempReader = new BinaryReader (tempStream);
 					int tempFileLength = (int)tempStream.Length;
 
-					//获取文件相对路径
+					//获取文件相对路径(包括其当前所属目录);
 					string relativePath = filePaths [i].Substring (rootFolderPathLength);
-					ResPackInfo tempResInfo = new ResPackInfo ();
-					tempResInfo.fullPath = filePaths [i];
-					tempResInfo.resName = relativePath;
-					tempResInfo.size = tempFileLength;
-					resInfoList.Add (tempResInfo);
+					PackedFileInfo tempFileInfo = new PackedFileInfo ();
+					tempFileInfo.fullPath = filePaths [i];
+					tempFileInfo.fileName = relativePath;
+					tempFileInfo.size = tempFileLength;
+					resInfoList.Add (tempFileInfo);
 
 					//关闭BinaryReader文件阅读器
 					tempReader.Close();
@@ -414,7 +424,7 @@ namespace PackTool
 			byte[] infoDatas = null;
 			for (int n = 0; n < resInfoList.Count; n++) 
 			{
-				byte[] strDatas = MyConverter.String2Bytes (resInfoList [n].resName);
+				byte[] strDatas = MyConverter.String2Bytes (resInfoList [n].fileName);
 				ushort strLength = (ushort)strDatas.Length;
 
 				AddToEnd (ref infoDatas, MyConverter.Ushort2Bytes (strLength));						//文件名字节大小（ushort)
@@ -484,10 +494,10 @@ namespace PackTool
 
 
 		[Serializable]
-		public class ResPackInfo
+		public class PackedFileInfo
 		{
 			public string fullPath = string.Empty;
-			public string resName = string.Empty;
+			public string fileName = string.Empty;
 			public uint beginPos = 0;
 			public int size = 0;
 			public int beforeSpace = 0;
