@@ -17,18 +17,28 @@ namespace PackTool
 	class PackFileTool:EditorWindow
 	{
 		#region 打包设定
-		private static string PackVersionStr = "1";
+		/// <summary>
+		/// 打包版本
+		/// </summary>
 		private static int PackVersion = 1;
-		private static string PackType = "Resource";
+		/// <summary>
+		/// 打包类型
+		/// </summary>
+		private static string PackType = "FilePack";
+
+		/// <summary>
+		/// 文件内容在资源包中按多少字节对齐
+		/// </summary>
+		private static uint MAlignBytesSize = 8;
 		#endregion
 
 
 		//要过滤掉的文件后缀名
 		public static string MFilterFileExtention = ".meta";
 		/// <summary>
-		/// 打包后的资源包后缀名
+		/// 打包后的资源包扩展名
 		/// </summary>
-		public static string MPackedFileExtention = ".bin";
+		public static string MPackageExtention = ".bin";
 
 		/// <summary>
 		/// 需要打包的文件夹
@@ -50,11 +60,11 @@ namespace PackTool
 		/// <summary>
 		/// 打包后的资源包名称
 		/// </summary>
-		private static string PackedFileName = string.Empty;
+		private static string PackageName = string.Empty;
 		/// <summary>
 		/// 打包后资源包名称的本地key
 		/// </summary>
-		private static string PackedFileNameKey = "PackedFileName";
+		private static string PackageNameKey = "PackageName";
 
 
 		#region 数据
@@ -79,7 +89,7 @@ namespace PackTool
 		{
 			GetLocalString (PackFromFolderKey, ref PackFromFolderPath);
 			GetLocalString (PackToFolderKey, ref PackToFolderPath);
-			GetLocalString (PackedFileNameKey, ref PackedFileName);
+			GetLocalString (PackageNameKey, ref PackageName);
 
 			return false;
 		}
@@ -134,39 +144,16 @@ namespace PackTool
 			//3.打包后的资源包名
 			GUILayout.BeginHorizontal ();
 			GUILayout.Label("打包后的资源包名:", EditorStyles.boldLabel, GUILayout.Width(100));
-			PackedFileName = GUILayout.TextField(PackedFileName, EditorStyles.boldLabel); 
-			GUILayout.EndHorizontal ();
-			GUILayout.Space (-10);
-			DrawLine ();
-
-			//4.资源包版本号
-			GUILayout.BeginHorizontal ();
-			GUILayout.Label("资源包版本号:", EditorStyles.boldLabel, GUILayout.Width(100));
-			PackVersionStr = GUILayout.TextField(PackVersionStr, EditorStyles.boldLabel); 
-			GUILayout.EndHorizontal ();
-			GUILayout.Space (-10);
-			DrawLine ();
-
-			//5.资源包的类型
-			GUILayout.BeginHorizontal ();
-			GUILayout.Label("资源包的类型:", EditorStyles.boldLabel, GUILayout.Width(100));
-			PackType = GUILayout.TextField(PackType, EditorStyles.boldLabel); 
+			PackageName = GUILayout.TextField(PackageName, EditorStyles.boldLabel); 
 			GUILayout.EndHorizontal ();
 			GUILayout.Space (-10);
 			DrawLine ();
 			GUILayout.Space (30);
 
-			//6.打包
+			//4.打包
 			if (GUILayout.Button ("打包", GUILayout.Width(150)))
 			{
-				if (int.TryParse (PackVersionStr, out PackVersion)) 
-				{
-					Pack ();
-				} 
-				else 
-				{
-					EditorUtility.DisplayDialog ("错误", "资源包的版本号必须为整数", "确定");
-				}
+				Pack ();
 			}
 			GUILayout.EndVertical ();
 		}  
@@ -194,22 +181,25 @@ namespace PackTool
 			PlayerPrefs.Save ();
 		}
 
+		/// <summary>
+		/// 打包
+		/// </summary>
 		private void Pack()
 		{
-			if (string.IsNullOrEmpty (PackFromFolderPath) || string.IsNullOrEmpty (PackToFolderPath) || string.IsNullOrEmpty (PackedFileName)) 
+			if (string.IsNullOrEmpty (PackFromFolderPath) || string.IsNullOrEmpty (PackToFolderPath) || string.IsNullOrEmpty (PackageName)) 
 			{
 				EditorUtility.DisplayDialog ("错误", "未设定好打包路径!", "确定");
 				return;
 			}
 
-			PackedFileName = PackedFileName.ToLower ();
-			string desFilePath = PackToFolderPath + @"/" + PackedFileName + MPackedFileExtention;
-			string txtPath = (new FileInfo(desFilePath)).Directory.Parent + @"/" + PackedFileName + ".txt";
-			CombineFile(PackFromFolderPath, desFilePath, txtPath);
+			PackageName = PackageName.ToLower ();
+			string desFilePath = PackToFolderPath + @"/" + PackageName + MPackageExtention;
+			string txtPath = (new FileInfo(desFilePath)).Directory.Parent + @"/" + PackageName + ".txt";
+			PackFilesToPackage(PackFromFolderPath, desFilePath, txtPath);
 
 			SaveStringToLocal (PackFromFolderKey, PackFromFolderPath);
 			SaveStringToLocal (PackToFolderKey, PackToFolderPath);
-			SaveStringToLocal (PackedFileNameKey, PackedFileName);
+			SaveStringToLocal (PackageNameKey, PackageName);
 
 			EditorUtility.DisplayDialog ("提示", "文件打包完成", "确定");
 		}
@@ -217,11 +207,11 @@ namespace PackTool
 
 
 
-		#region 合并文件
+		#region 打包文件到资源包中
 		/// <summary>
-		/// 合并文件
+		/// 打包某个文件夹中的所有文件到资源包中
 		/// </summary>
-		public static void CombineFile (string srcFolderPath, string desFilePath, string txtPath)
+		public static void PackFilesToPackage (string srcFolderPath, string desFilePath, string txtPath)
 		{
 			int frontRegionsSize = 0;
 
@@ -262,8 +252,14 @@ namespace PackTool
 			ushort resTypeNameSize = (ushort)resTypeNameData.Length;
 			totalWriter.Write (MyConverter.Ushort2Bytes (resTypeNameSize));						//1.2资源包类型名字节大小(ushort)
 			totalWriter.Write(resTypeNameData);													//1.3资源包类型名(UTF8)
-			int fileInfosRegionSize = 0;
-			uint totalSize = CountFilesStartPos (ref fileInfosRegionSize, ref frontRegionsSize);
+			//获取第一块区域（资源包信息区域）的字节大小
+			int packageInfoRegionSize = GetPackageInfoRegionSize ();
+			//获取第二块区域（文件信息集合区域）的字节大小
+			int fileInfosRegionSize = GetFileInfosRegionSize ();
+			//第一块及第二区域所占字节和
+			frontRegionsSize = packageInfoRegionSize + fileInfosRegionSize;
+			//获取文件在资源包中的位置信息及打包后整个资源包的字节大小
+			uint totalSize = GetFilePositionInfosAndTotalSize (frontRegionsSize);
 			totalWriter.Write (MyConverter.Uint2Bytes (totalSize));								//1.4资源包大小(uint)
 
 
@@ -278,7 +274,7 @@ namespace PackTool
 
 				AddToEnd (ref infoDatas, MyConverter.Ushort2Bytes (strLength));					//2.3.1文件名字节长度
 				AddToEnd (ref infoDatas, strDatas);												//2.3.2文件名
-				AddToEnd (ref infoDatas, MyConverter.Uint2Bytes (resInfoList [n].beginPos));	//2.3.3文件起始位置
+				AddToEnd (ref infoDatas, MyConverter.Uint2Bytes (resInfoList [n].startPos));	//2.3.3文件起始位置
 				AddToEnd (ref infoDatas, MyConverter.Int2Bytes (resInfoList [n].size));			//2.3.4文件大小
 			}
 			totalWriter.Write (infoDatas);
@@ -372,7 +368,7 @@ namespace PackTool
 			{
 				string fileName = resInfoList [i].fileName + "\t";
 				string beforeSpace = "beforeSpace:" + resInfoList [i].beforeSpace.ToString() + "\t";
-				string startPos = "startPos:" + resInfoList [i].beginPos.ToString () + "\t";
+				string startPos = "startPos:" + resInfoList [i].startPos.ToString () + "\t";
 				string fileSize = "fileSize:" + resInfoList [i].size.ToString () + "\t";
 				string endSpace = "endSpace" + resInfoList [i].endSpace.ToString ();
 				fileInfoes.Append(fileName).Append(beforeSpace).Append(startPos).Append(fileSize).Append(endSpace).Append("\r\n");
@@ -387,9 +383,9 @@ namespace PackTool
 		#endregion
 
 
-		#region Steps
+		#region 准备好写入数据到资源包中的一些步骤
 		/// <summary>
-		/// 1.获取到所有文件的初始信息
+		/// 1.获取到所有要打包文件的初始信息
 		/// </summary>
 		private static void GetFilesInitInfo(string[] filePaths)
 		{
@@ -425,9 +421,23 @@ namespace PackTool
 		}
 
 		/// <summary>
-		/// 第2步，获取文件信息集合区域所占的字节大小
+		/// 2.获取第一块区域（资源包信息区域）的字节大小
 		/// </summary>
-		/// <returns>The file infos region size.</returns>
+		/// <returns> 资源包信息区域的字节大小 </returns>
+		private static int GetPackageInfoRegionSize()
+		{
+			//计算资源包类型名字符串所占字节
+			int packageTypeNameSize = MyConverter.String2Bytes (PackType).Length;
+			//资源包版本（uint) + 资源包类型名字节大小(ushort) + 资源包类型名(UTF8) + 资源包大小(uint)
+			int packageRegionSize = 4 + 2 + packageTypeNameSize + 4;
+
+			return packageRegionSize;
+		}
+
+		/// <summary>
+		/// 3.获取第二块区域（文件信息集合区域）的字节大小
+		/// </summary>
+		/// <returns>文件信息集合区域的字节大小</returns>
 		private static int GetFileInfosRegionSize()
 		{
 			//文件信息集合所占字节大小(int) + 文件信息集合里的文件信息个数（int)
@@ -443,40 +453,35 @@ namespace PackTool
 
 				AddToEnd (ref infoDatas, MyConverter.Ushort2Bytes (strLength));						//文件名字节大小（ushort)
 				AddToEnd (ref infoDatas, strDatas);													//文件名(UTF8)
-				AddToEnd (ref infoDatas, MyConverter.Uint2Bytes (resInfoList [n].beginPos));		//文件起始位置(uint)
+				AddToEnd (ref infoDatas, MyConverter.Uint2Bytes (resInfoList [n].startPos));		//文件起始位置(uint)
 				AddToEnd (ref infoDatas, MyConverter.Int2Bytes (resInfoList [n].size));				//文件大小(int)
 			}
 			size += infoDatas.Length;
+			infoDatas = null;
 
 			return size;
 		}
 
 		/// <summary>
-		/// 3.计算每个文件的起始位置
+		/// 4.获取到文件在资源包中的位置信息及打包后整个资源包的字节大小
 		/// </summary>
-		private static uint CountFilesStartPos(ref int fileInfosRegionSize, ref int frontRegionsSize)
+		/// <returns>打包后整个资源包的字节大小</returns>
+		/// <param name="frontRegionsSize">文件数据集合区域前面所有区域占的字节大小</param>
+		private static uint GetFilePositionInfosAndTotalSize(int frontRegionsSize)
 		{
-			//1.计算资源包信息区域所占字节长度
-			//计算资源包类型名字符串所占字节
-			int resTypeNameSize = MyConverter.String2Bytes (PackType).Length;
-			//资源包版本（uint) + 资源包类型名字节大小(ushort) + 资源包类型名(UTF8) + 资源包大小(uint)
-			int resRegionSize = 4 + 2 + resTypeNameSize + 4;
-			fileInfosRegionSize = GetFileInfosRegionSize ();
-			frontRegionsSize = resRegionSize + fileInfosRegionSize;
-
 			uint totalSize = (uint)frontRegionsSize;
 			for (int n = 0; n < resInfoList.Count; n++) 
 			{
 				int beforeSpace = 0;
-				uint curFileStartPos = CountNextBeginPos (totalSize, ref beforeSpace);
-				resInfoList [n].beginPos = curFileStartPos;
+				uint curFileStartPos = CountFileBeginPosAndBeforeSpace (totalSize, ref beforeSpace);
+				resInfoList [n].startPos = curFileStartPos;
 				resInfoList [n].beforeSpace = beforeSpace;
 
 				totalSize += (uint)(beforeSpace + resInfoList [n].size);
 
 				if (n == resInfoList.Count - 1) 
 				{
-					resInfoList [n].endSpace = (int)((0 == totalSize % 8) ? 0 : (8 - totalSize % 8));
+					resInfoList [n].endSpace = CountLastFileEndSpace (totalSize);
 					totalSize += (uint)resInfoList [n].endSpace;
 				}
 			}
@@ -485,37 +490,46 @@ namespace PackTool
 		}
 
 		/// <summary>
-		/// 计算下一个文件的起始位置（需要按8字节对齐）
+		/// 计算文件在资源包中的起始位置及其前置空白间隙（需按MAlignBytesSize字节对齐）
 		/// </summary>
-		/// <returns>The next begin position.</returns>
-		/// <param name="curLength">Current length.</param>
-		private static uint CountNextBeginPos(uint curLength, ref int beforeSpace)
+		/// <returns>文件在资源包中的起始位置</returns>
+		/// <param name="curLength">当前已统计了的长度</param>
+		/// <param name="beforeSpace">文件的前置空白间隙字节大小</param>
+		private static uint CountFileBeginPosAndBeforeSpace(uint curLength, ref int beforeSpace)
 		{
-			if (0 == curLength % 8) 
+			if (0 == curLength % MAlignBytesSize) 
 			{
 				beforeSpace = 0;
 				return curLength;
 			} 
 			else 
 			{
-				uint nextBeginPos = curLength - curLength % 8 + 8;
-				beforeSpace = (int)(8 - curLength % 8);
+				uint beginPos = curLength - curLength % MAlignBytesSize + MAlignBytesSize;
+				beforeSpace = (int)(MAlignBytesSize - curLength % MAlignBytesSize);
 
-				return nextBeginPos;
+				return beginPos;
 			}
+		}
+
+		/// <summary>
+		/// 计算最后一个文件的末尾空白间隙占多少字节
+		/// </summary>
+		/// <returns>The last file end space.</returns>
+		private static int CountLastFileEndSpace(uint curLength)
+		{
+			return (0 == (int)(curLength % MAlignBytesSize)) ? 0 : (int)(MAlignBytesSize - curLength % MAlignBytesSize);
 		}
 		#endregion
 
 
-		[Serializable]
 		public class PackedFileInfo
 		{
 			public string fullPath = string.Empty;			//要打包文件的完整路径
 			public string fileName = string.Empty;			//文件名（相对路径名，包括后缀）
-			public uint beginPos = 0;						//文件内容在资源包中的起始位置
+			public uint startPos = 0;						//文件内容在资源包中的起始位置
 			public int size = 0;							//文件内容大小
-			public int beforeSpace = 0;						//文件内容在资源包中前置的空白间隙（主要是为了8字节对齐）
-			public int endSpace = 0;						//文件内容在资源包中后置的空白间隙（主要是为了8字节对齐）
+			public int beforeSpace = 0;						//文件内容在资源包中前置的空白间隙（主要是为了按MAlignBytesSize字节对齐）
+			public int endSpace = 0;						//文件内容在资源包中后置的空白间隙（主要是为了按MAlignBytesSize字节对齐）
 		}
 	}
 }
