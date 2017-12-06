@@ -12,9 +12,9 @@ using System.Runtime.Serialization.Formatters.Binary;
 namespace PackTool
 {
 	/// <summary>
-	/// 资源打包工具
+	/// 文件打包工具
 	/// </summary>
-	class ResPackTool:EditorWindow
+	class PackFileTool:EditorWindow
 	{
 		#region 打包设定
 		private static string PackVersionStr = "1";
@@ -60,14 +60,14 @@ namespace PackTool
 		#region 数据
 		private static List<PackedFileInfo> resInfoList = null;
 		#endregion
+
+
+
 		#region 窗口显示
-
-
-
 		[MenuItem("工具/文件打包")]  
 		static void Init()  
 		{  
-			EditorWindow.GetWindow<ResPackTool>("文件打包");
+			EditorWindow.GetWindow<PackFileTool>("文件打包");
 
 			InitPath ();
 		}
@@ -88,8 +88,7 @@ namespace PackTool
 		{  
 			GUILayout.BeginVertical ();
 
-			GUILayout.Label("______________________________________________________________________________" +
-				"______________________________________________________", EditorStyles.boldLabel);
+			DrawLine ();
 			GUILayout.Space (0);
 
 			//1.要打包文件夹
@@ -110,8 +109,7 @@ namespace PackTool
 			GUILayout.Label(PackFromFolderPath, EditorStyles.boldLabel);  
 			GUILayout.EndHorizontal ();
 			GUILayout.Space (-10);
-			GUILayout.Label("______________________________________________________________________________" +
-				"______________________________________________________", EditorStyles.boldLabel);
+			DrawLine ();
 
 			//2.资源包存放文件夹
 			GUILayout.BeginHorizontal ();
@@ -131,35 +129,31 @@ namespace PackTool
 			GUILayout.Label(PackToFolderPath, EditorStyles.boldLabel);  
 			GUILayout.EndHorizontal ();
 			GUILayout.Space (-10);
-			GUILayout.Label("______________________________________________________________________________" +
-				"______________________________________________________", EditorStyles.boldLabel);
+			DrawLine ();
 
-			//3.
+			//3.打包后的资源包名
 			GUILayout.BeginHorizontal ();
 			GUILayout.Label("打包后的资源包名:", EditorStyles.boldLabel, GUILayout.Width(100));
 			PackedFileName = GUILayout.TextField(PackedFileName, EditorStyles.boldLabel); 
 			GUILayout.EndHorizontal ();
 			GUILayout.Space (-10);
-			GUILayout.Label("______________________________________________________________________________" +
-				"______________________________________________________", EditorStyles.boldLabel);
+			DrawLine ();
 
-			//4.
+			//4.资源包版本号
 			GUILayout.BeginHorizontal ();
 			GUILayout.Label("资源包版本号:", EditorStyles.boldLabel, GUILayout.Width(100));
 			PackVersionStr = GUILayout.TextField(PackVersionStr, EditorStyles.boldLabel); 
 			GUILayout.EndHorizontal ();
 			GUILayout.Space (-10);
-			GUILayout.Label("______________________________________________________________________________" +
-				"______________________________________________________", EditorStyles.boldLabel);
+			DrawLine ();
 
-			//5.
+			//5.资源包的类型
 			GUILayout.BeginHorizontal ();
 			GUILayout.Label("资源包的类型:", EditorStyles.boldLabel, GUILayout.Width(100));
 			PackType = GUILayout.TextField(PackType, EditorStyles.boldLabel); 
 			GUILayout.EndHorizontal ();
 			GUILayout.Space (-10);
-			GUILayout.Label("______________________________________________________________________________" +
-				"______________________________________________________", EditorStyles.boldLabel);
+			DrawLine ();
 			GUILayout.Space (30);
 
 			//6.打包
@@ -177,6 +171,11 @@ namespace PackTool
 			GUILayout.EndVertical ();
 		}  
 
+		private void DrawLine()
+		{
+			GUILayout.Label("______________________________________________________________________________" +
+				"______________________________________________________", EditorStyles.boldLabel);
+		}
 
 		/// <summary>
 		/// 获取本地已经保存了的字符串
@@ -199,10 +198,9 @@ namespace PackTool
 		{
 			if (string.IsNullOrEmpty (PackFromFolderPath) || string.IsNullOrEmpty (PackToFolderPath) || string.IsNullOrEmpty (PackedFileName)) 
 			{
-				Debug.LogError ("错误，未设定好打包路径！");
+				EditorUtility.DisplayDialog ("错误", "未设定好打包路径!", "确定");
 				return;
 			}
-
 
 			PackedFileName = PackedFileName.ToLower ();
 			string desFilePath = PackToFolderPath + @"/" + PackedFileName + MPackedFileExtention;
@@ -259,29 +257,29 @@ namespace PackTool
 			totalWriter = new BinaryWriter (totalStream);
 
 			//1.资源包信息区域
-			totalWriter.Write(MyConverter.Int2Bytes(PackVersion));						//1.1资源包版本(int)
+			totalWriter.Write(MyConverter.Int2Bytes(PackVersion));								//1.1资源包版本(int)
 			byte[] resTypeNameData = MyConverter.String2Bytes (PackType);
 			ushort resTypeNameSize = (ushort)resTypeNameData.Length;
-			totalWriter.Write (MyConverter.Ushort2Bytes (resTypeNameSize));				//1.2资源包类型名字节大小(ushort)
-			totalWriter.Write(resTypeNameData);											//1.3资源包类型名(UTF8)
+			totalWriter.Write (MyConverter.Ushort2Bytes (resTypeNameSize));						//1.2资源包类型名字节大小(ushort)
+			totalWriter.Write(resTypeNameData);													//1.3资源包类型名(UTF8)
 			int fileInfosRegionSize = 0;
 			uint totalSize = CountFilesStartPos (ref fileInfosRegionSize, ref frontRegionsSize);
-			totalWriter.Write (MyConverter.Uint2Bytes (totalSize));						//1.4资源包大小(uint)
+			totalWriter.Write (MyConverter.Uint2Bytes (totalSize));								//1.4资源包大小(uint)
 
 
 			//2.文件信息集合区域
-			totalWriter.Write (MyConverter.Int2Bytes(fileInfosRegionSize));				//2.1文件信息集合所占字节大小(int)
-			totalWriter.Write(MyConverter.Int2Bytes(resInfoList.Count));				//2.2文件信息集合里的文件信息个数（int)
+			totalWriter.Write (MyConverter.Int2Bytes(fileInfosRegionSize));						//2.1文件信息集合所占字节大小(int)
+			totalWriter.Write(MyConverter.Int2Bytes(resInfoList.Count));						//2.2文件信息集合里的文件信息个数（int)
 			byte [] infoDatas = null;
-			for (int n = 0; n < resInfoList.Count; n++) 								//2.3各文件信息组合
+			for (int n = 0; n < resInfoList.Count; n++) 										//2.3各文件信息组合
 			{
 				byte[] strDatas = MyConverter.String2Bytes (resInfoList [n].fileName);
-				ushort strLength = (ushort)strDatas.Length;								//字节长度
+				ushort strLength = (ushort)strDatas.Length;								
 
-				AddToEnd (ref infoDatas, MyConverter.Ushort2Bytes (strLength));
-				AddToEnd (ref infoDatas, strDatas);
-				AddToEnd (ref infoDatas, MyConverter.Uint2Bytes (resInfoList [n].beginPos));
-				AddToEnd (ref infoDatas, MyConverter.Int2Bytes (resInfoList [n].size));
+				AddToEnd (ref infoDatas, MyConverter.Ushort2Bytes (strLength));					//2.3.1文件名字节长度
+				AddToEnd (ref infoDatas, strDatas);												//2.3.2文件名
+				AddToEnd (ref infoDatas, MyConverter.Uint2Bytes (resInfoList [n].beginPos));	//2.3.3文件起始位置
+				AddToEnd (ref infoDatas, MyConverter.Int2Bytes (resInfoList [n].size));			//2.3.4文件大小
 			}
 			totalWriter.Write (infoDatas);
 
@@ -330,12 +328,22 @@ namespace PackTool
 			totalStream.Close ();
 		}
 
+		/// <summary>
+		/// 写入N个空的字节内容
+		/// </summary>
+		/// <param name="totalWriter">Total writer.</param>
+		/// <param name="emptySize">Empty size.</param>
 		private static void WriteEmptyBytes(ref BinaryWriter totalWriter, int emptySize)
 		{
 			byte[] emptyDatas = new byte[emptySize];
 			totalWriter.Write (emptyDatas);
 		}
 
+		/// <summary>
+		/// 将一个字节数组里面的内容添加到另一个字节数组的末尾
+		/// </summary>
+		/// <param name="srcData">Source data.</param>
+		/// <param name="addData">Add data.</param>
 		private static void AddToEnd (ref byte[] srcData, byte[] addData)
 		{
 			if (srcData == null) 
@@ -349,6 +357,12 @@ namespace PackTool
 			}
 		}
 
+		/// <summary>
+		/// 仅作测试用的方法（用来确认数据组织的正确性与否）
+		/// </summary>
+		/// <param name="txtPath">Text path.</param>
+		/// <param name="resInfoList">Res info list.</param>
+		/// <param name="beforeLength">Before length.</param>
 		private static void Test(string txtPath, List<PackedFileInfo> resInfoList, int beforeLength)
 		{
 			StringBuilder fileInfoes = new StringBuilder ();
@@ -496,12 +510,12 @@ namespace PackTool
 		[Serializable]
 		public class PackedFileInfo
 		{
-			public string fullPath = string.Empty;
-			public string fileName = string.Empty;
-			public uint beginPos = 0;
-			public int size = 0;
-			public int beforeSpace = 0;
-			public int endSpace = 0;
+			public string fullPath = string.Empty;			//要打包文件的完整路径
+			public string fileName = string.Empty;			//文件名（相对路径名，包括后缀）
+			public uint beginPos = 0;						//文件内容在资源包中的起始位置
+			public int size = 0;							//文件内容大小
+			public int beforeSpace = 0;						//文件内容在资源包中前置的空白间隙（主要是为了8字节对齐）
+			public int endSpace = 0;						//文件内容在资源包中后置的空白间隙（主要是为了8字节对齐）
 		}
 	}
 }
