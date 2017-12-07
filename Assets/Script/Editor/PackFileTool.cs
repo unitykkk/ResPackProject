@@ -316,12 +316,6 @@ namespace PackTool
 				tempReader.Close();
 				//关闭FileStream文件流
 				tempStream.Close();
-
-				//3.写入文件尾部间隙
-				if(resInfoList[i].endSpace > 0)
-				{
-					WriteEmptyBytes (ref totalWriter, resInfoList [i].endSpace);
-				}
 			}
 
 			//关闭BinaryWriter文件书写器
@@ -376,8 +370,7 @@ namespace PackTool
 				string beforeSpace = "beforeSpace:" + resInfoList [i].beforeSpace.ToString() + "\t";
 				string startPos = "startPos:" + resInfoList [i].startPos.ToString () + "\t";
 				string fileSize = "fileSize:" + resInfoList [i].size.ToString () + "\t";
-				string endSpace = "endSpace" + resInfoList [i].endSpace.ToString ();
-				fileInfoes.Append(fileName).Append(beforeSpace).Append(startPos).Append(fileSize).Append(endSpace).Append("\r\n");
+				fileInfoes.Append(fileName).Append(beforeSpace).Append(startPos).Append(fileSize).Append("\r\n");
 			}
 
 			FileStream fs = new FileStream(txtPath, FileMode.Create);
@@ -484,12 +477,6 @@ namespace PackTool
 				resInfoList [n].beforeSpace = beforeSpace;
 
 				totalSize += (uint)(beforeSpace + resInfoList [n].size);
-
-				if (n == resInfoList.Count - 1) 
-				{
-					resInfoList [n].endSpace = CountLastFileEndSpace (totalSize);
-					totalSize += (uint)resInfoList [n].endSpace;
-				}
 			}
 
 			return totalSize;
@@ -535,7 +522,6 @@ namespace PackTool
 			public uint startPos = 0;						//文件内容在资源包中的起始位置
 			public int size = 0;							//文件内容大小
 			public int beforeSpace = 0;						//文件内容在资源包中前置的空白间隙（主要是为了按MAlignBytesSize字节对齐）
-			public int endSpace = 0;						//文件内容在资源包中后置的空白间隙（主要是为了按MAlignBytesSize字节对齐）
 		}
 	}
 }
