@@ -13,7 +13,7 @@ namespace PackTool
 {
 	public class MyConverter
 	{
-		#region Write Type Value
+		#region GetBytes
 		public static byte[] Ushort2Bytes(ushort value)
 		{
 			return BitConverter.GetBytes (value);

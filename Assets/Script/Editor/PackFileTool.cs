@@ -173,7 +173,7 @@ namespace PackTool
 		}
 
 		/// <summary>
-		/// 保存文件夹路径到本地
+		/// 保存字符串到本地
 		/// </summary>
 		private static void SaveStringToLocal(string localKey, string str)
 		{
@@ -193,9 +193,9 @@ namespace PackTool
 			}
 
 			PackageName = PackageName.ToLower ();
-			string desFilePath = PackToFolderPath + @"/" + PackageName + MPackageExtention;
-			string txtPath = (new FileInfo(desFilePath)).Directory.Parent + @"/" + PackageName + ".txt";
-			PackFilesToPackage(PackFromFolderPath, desFilePath, txtPath);
+			string packagePath = PackToFolderPath + @"/" + PackageName + MPackageExtention;
+			string txtPath = (new FileInfo(packagePath)).Directory.Parent + @"/" + PackageName + ".txt";
+			PackFilesToPackage(PackFromFolderPath, packagePath, txtPath);
 
 			SaveStringToLocal (PackFromFolderKey, PackFromFolderPath);
 			SaveStringToLocal (PackToFolderKey, PackToFolderPath);
@@ -211,7 +211,7 @@ namespace PackTool
 		/// <summary>
 		/// 打包某个文件夹中的所有文件到资源包中
 		/// </summary>
-		public static void PackFilesToPackage (string srcFolderPath, string desFilePath, string txtPath)
+		public static void PackFilesToPackage (string srcFolderPath, string packagePath, string txtPath)
 		{
 			int frontRegionsSize = 0;
 
@@ -224,7 +224,7 @@ namespace PackTool
 				resInfoList = new List<PackedFileInfo> ();
 
 				GetFilesInitInfo (filePaths);
-				WriteAllDatas (desFilePath, filePaths, ref frontRegionsSize);
+				WriteAllDatas (packagePath, filePaths, ref frontRegionsSize);
 			}
 
 			Test (txtPath, resInfoList, frontRegionsSize);
@@ -236,13 +236,19 @@ namespace PackTool
 			}
 		}
 
-		private static void WriteAllDatas(string desFilePath, string[] filePaths, ref int frontRegionsSize)
+		/// <summary>
+		/// 写入所有数据到资源包文件中
+		/// </summary>
+		/// <param name="packagePath">打包完成后资源包的路径</param>
+		/// <param name="filePaths">要打包的文件路径集合</param>
+		/// <param name="frontRegionsSize">第一块区域与第二块区域所占的字节大小和</param>
+		private static void WriteAllDatas(string packagePath, string[] filePaths, ref int frontRegionsSize)
 		{
 			BinaryWriter totalWriter = null;
 			FileStream totalStream = null;
 			//初始化FileStream文件流
 			//totalStream = new FileStream(desFilePath, FileMode.Append);
-			totalStream = new FileStream (desFilePath, FileMode.Create);
+			totalStream = new FileStream (packagePath, FileMode.Create);
 			//以FileStream文件流来初始化BinaryWriter书写器，此用以合并分割的文件
 			totalWriter = new BinaryWriter (totalStream);
 
